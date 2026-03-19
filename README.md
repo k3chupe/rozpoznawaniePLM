@@ -17,8 +17,8 @@ Wypakuj go, upewnij się, że plik `.exe` oraz `wzor_w.jpg` są w tym samym fold
 ### Instalacja:
 1. Sklonuj to repozytorium:
    ```bash
-   git clone [https://github.com/k3chupe/rozpoznawaniePLM.git](https://github.com/k3chupe/rozpoznawaniePLM.git)
-   cd rozpoznawaniePLM
+    git clone https://github.com/k3chupe/rozpoznawaniePLM.git
+    cd rozpoznawaniePLM
 
 2. Stwórz i aktywuj wirtualne środowisko:
 Bash
