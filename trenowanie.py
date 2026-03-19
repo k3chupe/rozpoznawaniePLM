@@ -51,7 +51,7 @@ def unifikuj_punkty(landmarks):
 dane = []
 etykiety = []
 
-print("Wczytywanie i analizowanie obrazków (MediaPipe)...")
+print("Wczytywanie i analizowanie obrazków (z odbiciami lustrzanymi)...")
 for plik in os.listdir(FOLDER_Z_DANYMI):
     litera = plik[0].upper()
     sciezka = os.path.join(FOLDER_Z_DANYMI, plik)
@@ -60,12 +60,25 @@ for plik in os.listdir(FOLDER_Z_DANYMI):
     if obraz is None: continue
         
     obraz_rgb = cv2.cvtColor(obraz, cv2.COLOR_BGR2RGB)
-    wynik = hands.process(obraz_rgb)
     
-    # Jeśli znaleziono dłoń na obrazku
+    # -----------------------------------------
+    # WERSJA 1: ORYGINALNY OBRAZ
+    # -----------------------------------------
+    wynik = hands.process(obraz_rgb)
     if wynik.multi_hand_landmarks:
         cechy = unifikuj_punkty(wynik.multi_hand_landmarks[0])
         dane.append(cechy)
+        etykiety.append(litera)
+        
+    # -----------------------------------------
+    # WERSJA 2: ODBICIE LUSTRZANE (Druga ręka)
+    # -----------------------------------------
+    obraz_odbity = cv2.flip(obraz_rgb, 1) # 1 oznacza odbicie w poziomie
+    wynik_odbity = hands.process(obraz_odbity)
+    
+    if wynik_odbity.multi_hand_landmarks:
+        cechy_odbite = unifikuj_punkty(wynik_odbity.multi_hand_landmarks[0])
+        dane.append(cechy_odbite)
         etykiety.append(litera)
 
 dane = np.array(dane)
@@ -92,7 +105,7 @@ model = Sequential([
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print("Rozpoczynam trenowanie sieci...")
-model.fit(X_train, y_train, epochs=200, batch_size=16, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, epochs=400, batch_size=32, validation_data=(X_test, y_test))
 
 # Zapisywanie
 model.save("model_gesty_punkty.keras")
