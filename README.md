@@ -1,12 +1,12 @@
 # Rozpoznawanie Gestów Dłoni (MediaPipe & OpenCV) 🖐️
 
-Prosty, ale potężny program napisany w języku Python, który używa kamery internetowej oraz sieci neuronowej (MediaPipe) do wykrywania dłoni w czasie rzeczywistym. Program wczytuje zdjęcie ze wzorem gestu (`wzor.jpg`), oblicza jego matematyczny szkielet i porównuje z tym, co aktualnie widzi kamera.
+Prosty, ale potężny program napisany w języku Python, który używa kamery internetowej oraz sieci neuronowej (MediaPipe) do wykrywania dłoni w czasie rzeczywistym. Program wczytuje zdjęcie ze wzorem gestu (`wzor_W.jpg`), oblicza jego matematyczny szkielet i porównuje z tym, co aktualnie widzi kamera.
 
 Algorytm jest odporny na obrót dłoni oraz jej odległość od obiektywu!
 
 ## 🚀 Jak uruchomić gotowy program (bez programowania)?
 Jeśli chcesz po prostu przetestować program, przejdź do zakładki **[Releases]** po prawej stronie i pobierz najnowszy plik `.zip`. 
-Wypakuj go, upewnij się, że plik `.exe` oraz `wzor.jpg` są w tym samym folderze i uruchom aplikację.
+Wypakuj go, upewnij się, że plik `.exe` oraz `wzor_w.jpg` są w tym samym folderze i uruchom aplikację.
 
 ## 💻 Jak uruchomić kod ze źródeł (dla programistów)?
 
@@ -17,8 +17,8 @@ Wypakuj go, upewnij się, że plik `.exe` oraz `wzor.jpg` są w tym samym folder
 ### Instalacja:
 1. Sklonuj to repozytorium:
    ```bash
-   git clone [https://github.com/TWOJA_NAZWA/rozpoznawanie_gestow.git](https://github.com/TWOJA_NAZWA/rozpoznawanie_gestow.git)
-   cd rozpoznawanie_gestow
+   git clone [https://github.com/k3chupe/rozpoznawaniePLM.git](https://github.com/k3chupe/rozpoznawaniePLM.git)
+   cd rozpoznawaniePLM
 
 2. Stwórz i aktywuj wirtualne środowisko:
 Bash
