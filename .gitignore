@@ -4,6 +4,8 @@ build/
 dist/
 .vscode/
 do_nauki/
+dem*
+analiza_liter.txt
 *.spec
 *.exe
 *.zip
