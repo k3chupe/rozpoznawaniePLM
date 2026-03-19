@@ -4,8 +4,8 @@ import math
 import numpy as np
 import tensorflow as tf
 import mediapipe as mp
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 import pickle
