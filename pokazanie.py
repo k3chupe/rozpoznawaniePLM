@@ -71,7 +71,7 @@ while True:
     cv2.imshow("Rozpoznawanie Gestów - AI na żywo", ramka)
 
     if cv2.waitKey(5) & 0xFF == ord('q'): break
-    if cv2.getWindowProperty('Wykrywanie Dloni - MediaPipe', cv2.WND_PROP_VISIBLE) < 1: break
+    #if cv2.getWindowProperty('Wykrywanie Dloni - MediaPipe', cv2.WND_PROP_VISIBLE) < 1: break
 
 kamera.release()
 hands.close()
