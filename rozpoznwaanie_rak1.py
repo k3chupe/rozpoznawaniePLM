@@ -115,8 +115,39 @@ while cap.isOpened():
     najlepsza_pewnosc = 0 # Nowa zmienna do przechowywania wyniku
 
     if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        # UWAGA: Używamy funkcji zip(), żeby pobrać z wyników jednocześnie
+        # punkty dłoni (hand_landmarks) oraz informację o tym, która to ręka (handedness)
+        for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+            
+            # Pobieramy etykietę: 'Left' lub 'Right'
+            etykieta = handedness.classification[0].label
+            
+            # Domyślny kolor: Biały (BGR: 255, 255, 255)
+            kolor = (255, 255, 255) 
+
+            # Jeśli MediaPipe mówi 'Left', to w naszym lustrzanym odbiciu jest to Twoja PRAWA ręka
+            if etykieta == 'Left':
+                # Ustawiamy kolor na jasny fioletowy (BGR)
+                kolor = (255, 150, 200)
+            
+            # Jeśli wolisz, żeby to lewa ręka była fioletowa, zmień wyżej 'Left' na 'Right'
+
+            # Tworzymy specyfikację pędzla dla kropek i dla linii
+            styl_kropek = mp_drawing.DrawingSpec(color=kolor, thickness=2, circle_radius=4)
+            styl_linii = mp_drawing.DrawingSpec(color=kolor, thickness=2)
+
+            # Rysujemy dłoń używając naszych nowych stylów
+            mp_drawing.draw_landmarks(
+                image, 
+                hand_landmarks, 
+                mp_hands.HAND_CONNECTIONS,
+                landmark_drawing_spec=styl_kropek,
+                connection_drawing_spec=styl_linii
+            )
+            
+            # Reszta Twojego kodu do szkieletu i porównywania gestów zostaje bez zmian!
+            szkielet_na_zywo = pobierz_szkielet_gestu(hand_landmarks)
+            # ... i tak dalej
             
             szkielet_na_zywo = pobierz_szkielet_gestu(hand_landmarks)
             
