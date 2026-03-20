@@ -94,18 +94,18 @@ print(f"Zebrano {len(dane)} próbek. Liczba cech: {dane.shape[1]}")
 
 # Architektura Sieci Neuronowej dla danych numerycznych (MLP)
 model = Sequential([
-    Dense(128, activation='relu', input_shape=(43,)),
+    Dense(256, activation='relu', input_shape=(43,)),
     Dropout(0.3),
-    Dense(64, activation='relu'),
+    Dense(128, activation='relu'),
     Dropout(0.2),
-    Dense(32, activation='relu'),
+    Dense(64, activation='relu'),
     Dense(len(lb.classes_), activation='softmax')
 ])
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print("Rozpoczynam trenowanie sieci...")
-model.fit(X_train, y_train, epochs=300, batch_size=32, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, epochs=700, batch_size=32, validation_data=(X_test, y_test))
 
 # Zapisywanie
 model.save("model_gesty_punkty.keras")
