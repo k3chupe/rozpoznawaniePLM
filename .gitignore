@@ -4,6 +4,7 @@ build/
 dist/
 .vscode/
 do_nauki/
+lepsze_dane/
 dem*
 analiza_liter.txt
 *.spec

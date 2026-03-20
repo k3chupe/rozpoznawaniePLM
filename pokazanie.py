@@ -39,8 +39,7 @@ def unifikuj_punkty(landmarks):
 kamera = cv2.VideoCapture(0)
 print("Kamera uruchomiona. Wciśnij 'q', aby wyjść.")
 
-#pTime = 0
-
+pTime = 0
 
 while True:
     ret, ramka = kamera.read()
@@ -54,33 +53,32 @@ while True:
     
     if wynik.multi_hand_landmarks:
         for hand_landmarks in wynik.multi_hand_landmarks:
-            # Rysowanie szkieletu na dłoni dla podglądu
             mp_drawing.draw_landmarks(ramka, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             
-            # Przekształcenie punktów na 43 liczby
             cechy = unifikuj_punkty(hand_landmarks)
-            cechy_dla_modelu = np.reshape(cechy, (1, 43)) # Model oczekuje wymiaru (batch_size, features)
+            cechy_dla_modelu = np.reshape(cechy, (1, 43))
             
-            # Predykcja
-            przewidywania = model.predict(cechy_dla_modelu, verbose=0)
+            # --- ZMIANA TUTAJ: Bezpośrednie wywołanie zamiast model.predict ---
+            # training=False wyłącza warstwy Dropout, co jest wymagane przy predykcji
+            przewidywania = model(cechy_dla_modelu, training=False).numpy()
+            
             indeks = np.argmax(przewidywania)
             prawdopodobienstwo = przewidywania[0][indeks]
             rozpoznana_litera = lb.classes_[indeks]
             
-            # Wyświetlanie wyniku
-            if prawdopodobienstwo > 0.6: # próg pewności 60%
+            if prawdopodobienstwo > 0.6: 
                 tekst = f"Gest: {rozpoznana_litera} ({prawdopodobienstwo * 100:.1f}%)"
-                cv2.putText(ramka, tekst, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(ramka, tekst, (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3, cv2.LINE_AA)
 
-    # cTime = time.time()
-    # fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 0
-    # pTime = cTime
-    # cv2.putText(ramka, f'FPS: {int(fps)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+    # --- ZMIANA TUTAJ: Liczenie i wyświetlanie FPS ---
+    cTime = time.time()
+    fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 0
+    pTime = cTime
+    cv2.putText(ramka, f'FPS: {int(fps)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
     cv2.imshow("Rozpoznawanie Gestów - AI na żywo", ramka)
 
     if cv2.waitKey(5) & 0xFF == ord('q'): break
-    #if cv2.getWindowProperty('Wykrywanie Dloni - MediaPipe', cv2.WND_PROP_VISIBLE) < 1: break
 
 kamera.release()
 hands.close()
