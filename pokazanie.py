@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import mediapipe as mp
 import pickle
+import time
 
 # Ładowanie MediaPipe
 mp_hands = mp.solutions.hands
@@ -38,6 +39,9 @@ def unifikuj_punkty(landmarks):
 kamera = cv2.VideoCapture(0)
 print("Kamera uruchomiona. Wciśnij 'q', aby wyjść.")
 
+#pTime = 0
+
+
 while True:
     ret, ramka = kamera.read()
     if not ret: break
@@ -67,6 +71,11 @@ while True:
             if prawdopodobienstwo > 0.6: # próg pewności 60%
                 tekst = f"Gest: {rozpoznana_litera} ({prawdopodobienstwo * 100:.1f}%)"
                 cv2.putText(ramka, tekst, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+    # cTime = time.time()
+    # fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 0
+    # pTime = cTime
+    # cv2.putText(ramka, f'FPS: {int(fps)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
     cv2.imshow("Rozpoznawanie Gestów - AI na żywo", ramka)
 

@@ -60,7 +60,7 @@ while cap.isOpened():
         # Generujemy unikalną nazwę pliku (0_ + timestamp)
         # int(time.time() * 1000) daje unikalny, długi numer milisekundowy
         unikalny_numer = int(time.time() * 1000)
-        nazwa_pliku = f"0_{unikalny_numer}.jpg"
+        nazwa_pliku = f"R_{unikalny_numer}.jpg"
         sciezka_zapisu = os.path.join(NAZWA_FOLDERU, nazwa_pliku)
         
         # ZAPISUJEMY ORYGINALNĄ KLATKĘ (frame), a nie tę z narysowanym szkieletem!
