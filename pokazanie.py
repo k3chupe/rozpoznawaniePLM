@@ -16,7 +16,7 @@ model = tf.keras.models.load_model("model_gesty_punkty.keras")
 with open("etykiety_punkty.pkl", "rb") as f:
     lb = pickle.load(f)
 
-# Ta sama funkcja co w skrypcie treningowym
+# Funkcja unifikująca 21 punktów do 43 liczb
 def unifikuj_punkty(landmarks):
     punkty = np.array([[lm.x, lm.y] for lm in landmarks.landmark])
     nadgarstek = punkty[0]
@@ -36,6 +36,12 @@ def unifikuj_punkty(landmarks):
     cechy.append(kat)
     return np.array(cechy)
 
+# Funkcja pomocnicza do czytelniejszego wyświetlania zera
+def formatuj_nazwe(litera):
+    if str(litera) == '0':
+        return "0 (ZERO)"
+    return str(litera)
+
 kamera = cv2.VideoCapture(0)
 print("Kamera uruchomiona. Wciśnij 'q', aby wyjść.")
 
@@ -45,7 +51,6 @@ while True:
     ret, ramka = kamera.read()
     if not ret: break
         
-    # Odbicie lustrzane dla wygody i konwersja do RGB dla MediaPipe
     ramka = cv2.flip(ramka, 1)
     ramka_rgb = cv2.cvtColor(ramka, cv2.COLOR_BGR2RGB)
     
@@ -58,23 +63,56 @@ while True:
             cechy = unifikuj_punkty(hand_landmarks)
             cechy_dla_modelu = np.reshape(cechy, (1, 43))
             
-            # --- ZMIANA TUTAJ: Bezpośrednie wywołanie zamiast model.predict ---
-            # training=False wyłącza warstwy Dropout, co jest wymagane przy predykcji
-            przewidywania = model(cechy_dla_modelu, training=False).numpy()
+            # Pobranie przewidywań
+            przewidywania = model(cechy_dla_modelu, training=False).numpy()[0]
             
-            indeks = np.argmax(przewidywania)
-            prawdopodobienstwo = przewidywania[0][indeks]
-            rozpoznana_litera = lb.classes_[indeks]
+            # np.argsort sortuje rosnąco, więc odwracamy tablicę [::-1], żeby mieć malejąco
+            posortowane_indeksy = np.argsort(przewidywania)[::-1]
             
-            if prawdopodobienstwo > 0.6: 
-                tekst = f"Gest: {rozpoznana_litera} ({prawdopodobienstwo * 100:.1f}%)"
-                cv2.putText(ramka, tekst, (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3, cv2.LINE_AA)
+            # --- 1. GŁÓWNY WYNIK (Najbardziej prawdopodobny) ---
+            glowny_indeks = posortowane_indeksy[0]
+            glowne_prawd = przewidywania[glowny_indeks]
+            glowna_litera = formatuj_nazwe(lb.classes_[glowny_indeks])
+            
+            if glowne_prawd > 0.6: 
+                tekst = f"Gest: {glowna_litera} ({glowne_prawd * 100:.1f}%)"
+                # Tło pod główny napis, żeby nie zlewał się z obrazem
+                cv2.rectangle(ramka, (40, 45), (450, 95), (0,0,0), -1)
+                cv2.putText(ramka, tekst, (50, 80), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-    # --- ZMIANA TUTAJ: Liczenie i wyświetlanie FPS ---
+            # --- 2. WYNIKI ALTERNATYWNE (Inne opcje > 5%) ---
+            y_offset = 125 # Zmienna kontrolująca, jak nisko rysować kolejne linijki
+            
+            for i in range(1, len(posortowane_indeksy)):
+                indeks_alt = posortowane_indeksy[i]
+                prawd_alt = przewidywania[indeks_alt]
+                
+                # Jeśli prawdopodobieństwo spadnie poniżej 5% (0.05), przerywamy pętlę
+                if prawd_alt < 0.05:
+                    break
+                    
+                litera_alt = formatuj_nazwe(lb.classes_[indeks_alt])
+                
+                # Dobór koloru: >20% Żółty, pomiędzy 5% a 20% Czerwony (BGR)
+                if prawd_alt > 0.20:
+                    kolor_alt = (0, 255, 255) # Żółty
+                else:
+                    kolor_alt = (0, 0, 255) # Czerwony
+                
+                tekst_alt = f"Moze to: {litera_alt} ({prawd_alt * 100:.1f}%)"
+                
+                # Cień pod mniejszym tekstem
+                cv2.putText(ramka, tekst_alt, (52, y_offset+2), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1, cv2.LINE_AA)
+                # Właściwy mniejszy tekst
+                cv2.putText(ramka, tekst_alt, (50, y_offset), cv2.FONT_HERSHEY_DUPLEX, 0.6, kolor_alt, 1, cv2.LINE_AA)
+                
+                y_offset += 30 # Przesuwamy się w dół na kolejną ewentualną linijkę
+
+    # FPS
     cTime = time.time()
     fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 0
     pTime = cTime
-    cv2.putText(ramka, f'FPS: {int(fps)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+    cv2.putText(ramka, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
     cv2.imshow("Rozpoznawanie Gestów - AI na żywo", ramka)
 

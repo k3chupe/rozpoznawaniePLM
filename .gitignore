@@ -14,3 +14,4 @@ analiza_liter.txt
 *.pkl
 *.keras
 *.h5
+*.json

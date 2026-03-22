@@ -105,7 +105,7 @@ model = Sequential([
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print("Rozpoczynam trenowanie sieci...")
-model.fit(X_train, y_train, epochs=700, batch_size=32, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, epochs=500, batch_size=32, validation_data=(X_test, y_test))
 
 # Zapisywanie
 model.save("model_gesty_punkty.keras")
