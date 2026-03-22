@@ -5,6 +5,9 @@ dist/
 .vscode/
 do_nauki/
 lepsze_dane/
+nagrania_testy/
+analiza/
+alfabet/
 dem*
 analiza_liter.txt
 *.spec
