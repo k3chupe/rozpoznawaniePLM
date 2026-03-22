@@ -153,30 +153,45 @@ X_train, X_test, y_train, y_test = train_test_split(
     dane, etykiety_one_hot, test_size=0.2, random_state=42, stratify=etykiety_int
 )
 
+from keras.callbacks import ReduceLROnPlateau
+
 # ==========================================
-# 5. FABRYKA MODELI (DLA TUNERA)
+# 5. FABRYKA MODELI (DLA TUNERA) - ROZSZERZONA
 # ==========================================
 def buduj_model(hp):
     model = Sequential()
     
+    # Warstwa 1 (Poszerzyliśmy zakres do 1024 neuronów!)
     model.add(Dense(
-        units=hp.Int('neurony_warstwa_1', min_value=64, max_value=512, step=64), 
+        units=hp.Int('neurony_warstwa_1', min_value=128, max_value=1024, step=128), 
         input_shape=(X_train.shape[1],)
     ))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
-    model.add(Dropout(hp.Float('dropout_1', min_value=0.1, max_value=0.5, step=0.1)))
+    model.add(Dropout(hp.Float('dropout_1', min_value=0.1, max_value=0.6, step=0.1)))
     
+    # Warstwa 2 (Poszerzony zakres do 512 neuronów)
     model.add(Dense(
-        units=hp.Int('neurony_warstwa_2', min_value=32, max_value=256, step=32)
+        units=hp.Int('neurony_warstwa_2', min_value=64, max_value=512, step=64)
     ))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
-    model.add(Dropout(hp.Float('dropout_2', min_value=0.1, max_value=0.5, step=0.1)))
+    model.add(Dropout(hp.Float('dropout_2', min_value=0.1, max_value=0.6, step=0.1)))
     
+    # OPCJONALNA WARSTWA 3 (Tuner zdecyduje, czy warto ją dodać)
+    if hp.Boolean('dodaj_warstwe_3'):
+        model.add(Dense(
+            units=hp.Int('neurony_warstwa_3', min_value=32, max_value=256, step=32)
+        ))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(Dropout(hp.Float('dropout_3', min_value=0.1, max_value=0.5, step=0.1)))
+    
+    # Warstwa wyjściowa
     model.add(Dense(len(lb.classes_), activation='softmax'))
     
-    szybkosc_uczenia = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+    # Algorytm sprawdzi wszystkie ułamki z tej skali zamiast tylko 3 konkretnych liczb
+    szybkosc_uczenia = hp.Float('learning_rate', min_value=1e-5, max_value=1e-2, sampling='log')
     
     model.compile(
         optimizer=Adam(learning_rate=szybkosc_uczenia), 
@@ -186,24 +201,27 @@ def buduj_model(hp):
     return model
 
 # ==========================================
-# 6. SZUKANIE NAJLEPSZEJ SIECI (HYPERBAND)
+# 6. SZUKANIE NAJLEPSZEJ SIECI (BAYESIAN OPTIMIZATION)
 # ==========================================
-print("Rozpoczynam poszukiwania architektur za pomocą algorytmu Hyperband...")
+print("Rozpoczynam całonocne poszukiwania za pomocą Optymalizacji Bayesowskiej...")
 
 tuner = kt.Hyperband(
     buduj_model,
     objective='val_loss',
-    max_epochs=50,
-    factor=3,
-    directory='moje_poszukiwania',
-    project_name='rozpoznawanie_gestow_v2'
+    max_epochs=200,          # Maksymalny czas tylko dla finalistów (Twój wielki finał)
+    factor=4,                # Zostawia górne 20% na każdym etapie eliminacji
+    hyperband_iterations=3,  # Powtarza cały ten wielki "turniej" 3 razy (dla pewności)
+    directory='moje_poszukiwania_noc',
+    project_name='gesty_hyperband_turniej'
 )
 
-tuner_early_stop = EarlyStopping(monitor='val_loss', patience=10)
+# W Hyperband nie musimy ustawiać sztucznie małej cierpliwości (patience)!
+# Sam algorytm ucina sieci zgodnie z "drabinką turniejową".
+# Ten EarlyStopping zabezpiecza po prostu finalistów przed przetrenowaniem.
+tuner_early_stop = EarlyStopping(monitor='val_loss', patience=30)
 
 tuner.search(
     X_train, y_train, 
-    epochs=50, 
     validation_data=(X_test, y_test),
     class_weight=class_weight_dict,
     callbacks=[tuner_early_stop],
@@ -212,30 +230,42 @@ tuner.search(
 
 najlepsze_hiperparametry = tuner.get_best_hyperparameters(num_trials=1)[0]
 print("\n" + "="*50)
-print("ZNALEZIONO NAJLEPSZĄ ARCHITEKTURĘ SIECI!")
+print("ZAKOŃCZONO SZUKANIE! OTO NAJLEPSZA ZNALEZIONA ARCHITEKTURA:")
+print(f"- Neurony w 1. warstwie: {najlepsze_hiperparametry.get('neurony_warstwa_1')}")
+print(f"- Neurony w 2. warstwie: {najlepsze_hiperparametry.get('neurony_warstwa_2')}")
+if najlepsze_hiperparametry.get('dodaj_warstwe_3'):
+    print(f"- Zdecydowano się DODAĆ 3. warstwę z neuronami: {najlepsze_hiperparametry.get('neurony_warstwa_3')}")
+else:
+    print("- Zdecydowano, że 3. warstwa NIE JEST POTRZEBNA.")
+print(f"- Prędkość uczenia: {najlepsze_hiperparametry.get('learning_rate')}")
 print("="*50 + "\n")
 
 # ==========================================
-# 7. OSTATECZNY TRENING ZWYCIĘZCY
+# 7. OSTATECZNY TRENING ZWYCIĘZCY ("SPUSZCZENIE ZE SMYCZY")
 # ==========================================
-print("Rozpoczynam ostateczny trening na najlepszym modelu...")
+print("Rozpoczynam potężny trening ostateczny najlepszego modelu...")
 
 najlepszy_model = tuner.hypermodel.build(najlepsze_hiperparametry)
-nazwa_modelu = "model_gesty_punkty_v2.keras"
+nazwa_modelu = "model_gesty_punkty_v2_nocny.keras"
 
-final_early_stop = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True, verbose=1)
+# STRAŻNIK 1: Zatrzymuje i cofa do najlepszego momentu (cierpliwość = 60 epok)
+final_early_stop = EarlyStopping(monitor='val_loss', patience=60, restore_best_weights=True, verbose=1)
+
+# STRAŻNIK 2: Precyzyjne parkowanie. Jeśli wynik stoi przez 15 epok, zwalnia uczenie o połowę
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=15, min_lr=1e-6, verbose=1)
+
 checkpoint = ModelCheckpoint(nazwa_modelu, monitor='val_loss', save_best_only=True, mode='min', verbose=1)
 
 najlepszy_model.fit(
     X_train, y_train, 
-    epochs=1000, 
+    epochs=2000,          # Ogromny zapas epok - strażnik EarlyStop zatrzyma to w idealnym momencie!
     batch_size=32, 
     validation_data=(X_test, y_test),
     class_weight=class_weight_dict,
-    callbacks=[final_early_stop, checkpoint]
+    callbacks=[final_early_stop, reduce_lr, checkpoint]
 )
 
-with open("etykiety_punkty_v2.pkl", "wb") as f:
+with open("etykiety_punkty_v2_nocny.pkl", "wb") as f:
     pickle.dump(lb, f)
 
-print(f"\nGotowe! Najlepsza sieć zapisana jako '{nazwa_modelu}'.")
+print(f"\nUkończono! Rewelacyjnie wytrenowana sieć czeka w pliku '{nazwa_modelu}'.")
