@@ -10,8 +10,8 @@ import time
 # ---------------------------------------------------------
 # 1. KONFIGURACJA PLIKÓW
 # ---------------------------------------------------------
-PLIK_WEJSCIOWY = "moje_nagranie.mp4"    # Wpisz nazwę swojego nagrania
-PLIK_WYJSCIOWY = "wynik_porownanie.mp4" # Jak ma się nazywać gotowy plik
+PLIK_WEJSCIOWY = "nagrania_testy/alfabet.mp4"    # Wpisz nazwę swojego nagrania
+PLIK_WYJSCIOWY = "nagrania_testy/alfabet_porownanie_nn_xgb.mp4" # Jak ma się nazywać gotowy plik
 
 # ---------------------------------------------------------
 # 2. ŁADOWANIE MODELI
