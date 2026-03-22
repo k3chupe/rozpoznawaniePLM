@@ -1,4 +1,6 @@
 venv/
+venv_*/
+.env
 __pycache__/
 build/
 dist/
@@ -17,5 +19,9 @@ analiza_liter.txt
 *.pkl
 *.keras
 *.h5
+*.task
 *.json
 *.mp4
+*.7z
+*.pyc
+.DS_Store
