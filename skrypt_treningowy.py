@@ -110,16 +110,18 @@ for folder_klasy in os.listdir(FOLDER_Z_DANYMI):
         
         if obraz is None: continue
         obraz_rgb = cv2.cvtColor(obraz, cv2.COLOR_BGR2RGB)
-        
         analizuj_i_dodaj(obraz_rgb, litera, dane, etykiety)
         
         obraz_odbity = cv2.flip(obraz_rgb, 1)
         analizuj_i_dodaj(obraz_odbity, litera, dane, etykiety)
-        
+        # 3. Lekka rotacja w lewo (-15 stopni)
         obraz_rot_lewo = obroc_obraz(obraz_rgb, -15)
+        obraz_rot_lewo += obroc_obraz(obraz_odbity, -15)
         analizuj_i_dodaj(obraz_rot_lewo, litera, dane, etykiety)
         
+        # 4. Lekka rotacja w prawo (+15 stopni)
         obraz_rot_prawo = obroc_obraz(obraz_rgb, 15)
+        obraz_rot_prawo += obroc_obraz(obraz_odbity, 15)
         analizuj_i_dodaj(obraz_rot_prawo, litera, dane, etykiety)
 
 dane = np.array(dane)
@@ -205,23 +207,43 @@ def buduj_model(hp):
 # ==========================================
 print("Rozpoczynam całonocne poszukiwania za pomocą Optymalizacji Bayesowskiej...")
 
-tuner = kt.Hyperband(
+# tuner = kt.Hyperband(
+#     buduj_model,
+#     objective='val_loss',
+#     max_epochs=250,          # Maksymalny czas tylko dla finalistów (Twój wielki finał)
+#     factor=4,                # Zostawia górne 20% na każdym etapie eliminacji
+#     hyperband_iterations=2,  # Powtarza cały ten wielki "turniej" 3 razy (dla pewności)
+#     directory='moje_poszukiwania_noc',
+#     project_name='gesty_hyperband_turniej'
+# )
+
+# # W Hyperband nie musimy ustawiać sztucznie małej cierpliwości (patience)!
+# # Sam algorytm ucina sieci zgodnie z "drabinką turniejową".
+# # Ten EarlyStopping zabezpiecza po prostu finalistów przed przetrenowaniem.
+# tuner_early_stop = EarlyStopping(monitor='val_loss', patience=30)
+
+# tuner.search(
+#     X_train, y_train, 
+#     validation_data=(X_test, y_test),
+#     class_weight=class_weight_dict,
+#     callbacks=[tuner_early_stop],
+#     verbose=1
+# )
+
+tuner = kt.BayesianOptimization(
     buduj_model,
     objective='val_loss',
-    max_epochs=200,          # Maksymalny czas tylko dla finalistów (Twój wielki finał)
-    factor=4,                # Zostawia górne 20% na każdym etapie eliminacji
-    hyperband_iterations=3,  # Powtarza cały ten wielki "turniej" 3 razy (dla pewności)
-    directory='moje_poszukiwania_noc',
-    project_name='gesty_hyperband_turniej'
+    max_trials=200,          # <--- TUTAJ ZMIENIASZ LICZBĘ! (np. ze 100 na 200)
+    directory='moje_poszukiwania_nocc', # Musi zostać dokładnie takie samo jak wcześniej
+    project_name='gesty_bayes_v3'         # Musi zostać dokładnie takie samo jak wcześniej
 )
 
-# W Hyperband nie musimy ustawiać sztucznie małej cierpliwości (patience)!
-# Sam algorytm ucina sieci zgodnie z "drabinką turniejową".
-# Ten EarlyStopping zabezpiecza po prostu finalistów przed przetrenowaniem.
-tuner_early_stop = EarlyStopping(monitor='val_loss', patience=30)
+# Reszta zostaje po staremu
+tuner_early_stop = EarlyStopping(monitor='val_loss', patience=20)
 
 tuner.search(
     X_train, y_train, 
+    epochs=200, 
     validation_data=(X_test, y_test),
     class_weight=class_weight_dict,
     callbacks=[tuner_early_stop],
