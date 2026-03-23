@@ -6,6 +6,9 @@ import mediapipe as mp
 import pickle
 import time
 
+
+KAMERA_SZEROKOSC = 1920
+KAMERA_WYSOKOSC = 1080
 # Ładowanie MediaPipe
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -43,6 +46,9 @@ def formatuj_nazwe(litera):
     return str(litera)
 
 kamera = cv2.VideoCapture(0)
+
+kamera.set(cv2.CAP_PROP_FRAME_WIDTH, KAMERA_SZEROKOSC)
+kamera.set(cv2.CAP_PROP_FRAME_HEIGHT, KAMERA_WYSOKOSC)
 print("Kamera uruchomiona. Wciśnij 'q', aby wyjść.")
 
 pTime = 0
