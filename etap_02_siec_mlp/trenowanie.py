@@ -1,10 +1,19 @@
 import os
+import json
+import random
+import datetime
 import cv2
 import math
 import numpy as np
 import tensorflow as tf
 import mediapipe as mp
 import pickle
+
+# Seed dla reprodukowalnosci wynikow treningu
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
@@ -25,7 +34,9 @@ hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_co
 # ==========================================
 # 2. FUNKCJE POMOCNICZE
 # ==========================================
-def unifikuj_punkty(landmarks):
+def cechy_statyczne_2d(landmarks):
+    # Wejście: 21 punktów 2D (x, y) z MediaPipe Solutions API
+    # Wyjście: wektor 43 float (42 współrzędne znormalizowane + kąt atan2) - używane przez model etap_02
     # Krok 1: Wyciągamy x i y do tablicy numpy
     punkty = np.array([[lm.x, lm.y] for lm in landmarks.landmark])
     
@@ -73,7 +84,7 @@ for plik in os.listdir(FOLDER_Z_DANYMI):
     # WERSJA 1: ORYGINALNY OBRAZ
     wynik = hands.process(obraz_rgb)
     if wynik.multi_hand_landmarks:
-        cechy = unifikuj_punkty(wynik.multi_hand_landmarks[0])
+        cechy = cechy_statyczne_2d(wynik.multi_hand_landmarks[0])
         dane.append(cechy)
         etykiety.append(litera)
         
@@ -82,7 +93,7 @@ for plik in os.listdir(FOLDER_Z_DANYMI):
     wynik_odbity = hands.process(obraz_odbity)
     
     if wynik_odbity.multi_hand_landmarks:
-        cechy_odbite = unifikuj_punkty(wynik_odbity.multi_hand_landmarks[0])
+        cechy_odbite = cechy_statyczne_2d(wynik_odbity.multi_hand_landmarks[0])
         dane.append(cechy_odbite)
         etykiety.append(litera)
 
@@ -179,4 +190,22 @@ model.fit(
 with open("etykiety_punkty.pkl", "wb") as f:
     pickle.dump(lb, f)
 
+# Zapis etykiet jako JSON (czysta lista — nie wymaga sklearn przy wczytywaniu)
+with open("etykiety_punkty.json", "w", encoding="utf-8") as f:
+    json.dump(lb.classes_.tolist(), f, ensure_ascii=False)
+
+# Zapis karty modelu — kontrakt dla przyszłego backendu
+model_card = {
+    "model_file": nazwa_modelu,
+    "input_shape": [43],
+    "feature_spec": "21 punktow 2D (x,y), normalizacja wzgledem nadgarstka, skalowanie do max=1, + kat atan2; MediaPipe Solutions API",
+    "mediapipe_api": "solutions (stary)",
+    "classes": lb.classes_.tolist(),
+    "trained_at": datetime.datetime.now().isoformat(),
+    "tf_version": tf.__version__,
+}
+with open("model_card_etap02.json", "w", encoding="utf-8") as f:
+    json.dump(model_card, f, indent=2, ensure_ascii=False)
+
 print(f"\nTrening zakończony! Najlepsza wersja modelu została zapisana jako '{nazwa_modelu}'.")
+print("Zapisano takze: etykiety_punkty.json oraz model_card_etap02.json")

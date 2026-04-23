@@ -1,9 +1,19 @@
 import os
+import json
+import random
+import datetime
 import cv2
 import math
 import numpy as np
 import mediapipe as mp
 import pickle
+import tensorflow as tf
+
+# Seed dla reprodukowalnosci wynikow treningu
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
 
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout # Zmieniamy na LSTM!
@@ -25,7 +35,10 @@ hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_c
 # ==========================================
 # EKSTRAKCJA 64 CECH (z dodaną osią Z)
 # ==========================================
-def unifikuj_punkty(landmarks):
+def cechy_dynamiczne_kat(landmarks):
+    # Wejście: 21 punktów 3D (x, y, z) z MediaPipe Solutions API (landmarks.landmark).
+    # Wyjście: wektor 64 float (63 współrzędne znormalizowane + kąt atan2) - model etap_05 LSTM.
+    # UWAGA: 64. element to kąt atan2, NIE flaga ręki jak w etap_04!
     # Krok 1: Wyciągamy X, Y oraz dodajemy Z!
     punkty = np.array([[lm.x, lm.y, lm.z] for lm in landmarks.landmark])
     nadgarstek = punkty[0]
@@ -61,7 +74,7 @@ def wyciagnij_sekwencje(sciezka_wideo):
         
         # Pobieramy punkty, TYLKO gdy dłoń jest widoczna
         if wyniki.multi_hand_landmarks:
-            cechy = unifikuj_punkty(wyniki.multi_hand_landmarks[0])
+            cechy = cechy_dynamiczne_kat(wyniki.multi_hand_landmarks[0])
             sekwencja.append(cechy)
             
     cap.release()
@@ -196,4 +209,24 @@ model.fit(
 with open("etykiety_ruch.pkl", "wb") as f:
     pickle.dump(lb, f)
 
+# Zapis etykiet jako JSON (czysta lista — nie wymaga sklearn przy wczytywaniu)
+etykiety_json_path = os.path.join(BASE_DIR, "etykiety_ruch.json")
+with open(etykiety_json_path, "w", encoding="utf-8") as f:
+    json.dump(lb.classes_.tolist(), f, ensure_ascii=False)
+
+# Zapis karty modelu — kontrakt dla przyszłego backendu
+model_card = {
+    "model_file": "model_gesty_ruchome.keras",
+    "input_shape": [MAX_KLATEK_W_GEŚCIE, 64],
+    "feature_spec": "sekwencja 30 klatek; kazda klatka: 21 punktow 3D (x,y,z), normalizacja + kat atan2; MediaPipe Solutions API (stary)",
+    "mediapipe_api": "solutions (stary) — do migracji na Tasks API przed produkcja",
+    "classes": lb.classes_.tolist(),
+    "trained_at": datetime.datetime.now().isoformat(),
+    "tf_version": tf.__version__,
+}
+model_card_path = os.path.join(BASE_DIR, "model_card_etap05.json")
+with open(model_card_path, "w", encoding="utf-8") as f:
+    json.dump(model_card, f, indent=2, ensure_ascii=False)
+
 print(f"\nUkończono! Gotowy do rozpoznawania ruchu z użyciem '{nazwa_modelu}'.")
+print("Zapisano takze: etykiety_ruch.json oraz model_card_etap05.json")

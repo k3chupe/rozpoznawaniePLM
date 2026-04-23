@@ -16,8 +16,9 @@ FOLDER_Z_DANYMI = "../lepsze_dane"
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_confidence=0.5)
 
-# Funkcja unifikująca 21 punktów do 43 liczb wg Twojego opisu (BEZ ZMIAN)
-def unifikuj_punkty(landmarks):
+# Wejście: 21 punktów 2D (x, y) z MediaPipe Solutions API
+# Wyjście: wektor 43 float (42 współrzędne znormalizowane + kąt atan2) - używane przez modele etap_02/03
+def cechy_statyczne_2d(landmarks):
     punkty = np.array([[lm.x, lm.y] for lm in landmarks.landmark])
     nadgarstek = punkty[0]
     punkty_przesuniete = punkty - nadgarstek
@@ -56,7 +57,7 @@ for plik in os.listdir(FOLDER_Z_DANYMI):
     # ORYGINALNY OBRAZ
     wynik = hands.process(obraz_rgb)
     if wynik.multi_hand_landmarks:
-        cechy = unifikuj_punkty(wynik.multi_hand_landmarks[0])
+        cechy = cechy_statyczne_2d(wynik.multi_hand_landmarks[0])
         dane.append(cechy)
         etykiety.append(litera)
         
@@ -65,7 +66,7 @@ for plik in os.listdir(FOLDER_Z_DANYMI):
     wynik_odbity = hands.process(obraz_odbity)
     
     if wynik_odbity.multi_hand_landmarks:
-        cechy_odbite = unifikuj_punkty(wynik_odbity.multi_hand_landmarks[0])
+        cechy_odbite = cechy_statyczne_2d(wynik_odbity.multi_hand_landmarks[0])
         dane.append(cechy_odbite)
         etykiety.append(litera)
 

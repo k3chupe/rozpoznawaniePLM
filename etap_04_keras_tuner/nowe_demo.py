@@ -8,11 +8,13 @@ import tensorflow as tf
 import mediapipe as mp
 import pickle
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ==========================================
 # KONFIGURACJA MODELU I KAMERY
 # ==========================================
-SCIEZKA_MODELU = "model_gesty_punkty_v2_nocny.keras"
-SCIEZKA_ETYKIET = "etykiety_punkty_v2_nocny.pkl"
+SCIEZKA_MODELU = os.path.join(BASE_DIR, "model_gesty_punkty_v2_nocny.keras")
+SCIEZKA_ETYKIET = os.path.join(BASE_DIR, "etykiety_punkty_v2_nocny.pkl")
 PEWNOSC_THRESHOLD = 0.65 
 # Rozdzielczość kamery
 KAMERA_SZEROKOSC = 1920
@@ -123,7 +125,9 @@ def main():
         print(f"BŁĄD! {e}")
         return
 
-    def unifikuj_punkty(landmarks, tryb_3d=False):
+    def ekstrahuj_cechy(landmarks, tryb_3d=False):
+        # Wyjście: wektor 64 float (tryb_3d=True) lub 43 float (tryb_3d=False).
+        # Używa starego Solutions API (landmarks.landmark). 64. element to kąt atan2.
         if tryb_3d:
             punkty = np.array([[lm.x, lm.y, lm.z] for lm in landmarks.landmark])
         else:
@@ -187,7 +191,7 @@ def main():
                 )
                 
                 # Klasyfikacja
-                cechy = unifikuj_punkty(hand_landmarks, tryb_3d=(oczekiwane_cechy == 64))
+                cechy = ekstrahuj_cechy(hand_landmarks, tryb_3d=(oczekiwane_cechy == 64))
                 cechy_dla_modelu = np.reshape(cechy, (1, -1))
                 
                 przewidywania = model.predict(cechy_dla_modelu, verbose=0)

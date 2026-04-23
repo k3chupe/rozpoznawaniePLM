@@ -28,7 +28,9 @@ with open("etykiety_xgboost.pkl", "rb") as f:
 # ---------------------------------------------------------
 # 2. FUNKCJE POMOCNICZE
 # ---------------------------------------------------------
-def unifikuj_punkty(landmarks):
+def cechy_statyczne_2d(landmarks):
+    # Wejście: 21 punktów 2D (x, y) z MediaPipe Solutions API
+    # Wyjście: wektor 43 float (42 współrzędne znormalizowane + kąt atan2) - używane przez modele etap_02/03
     punkty = np.array([[lm.x, lm.y] for lm in landmarks.landmark])
     nadgarstek = punkty[0]
     punkty_przesuniete = punkty - nadgarstek
@@ -109,7 +111,7 @@ while True:
         for hand_landmarks in wynik.multi_hand_landmarks:
             mp_drawing.draw_landmarks(ramka, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             
-            cechy = unifikuj_punkty(hand_landmarks)
+            cechy = cechy_statyczne_2d(hand_landmarks)
             cechy_dla_modelu = np.reshape(cechy, (1, 43))
             
             # --- PREDYKCJA KERAS ---

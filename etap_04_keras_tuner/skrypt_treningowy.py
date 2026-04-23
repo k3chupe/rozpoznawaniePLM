@@ -1,4 +1,7 @@
 import os
+import json
+import random
+import datetime
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -9,6 +12,12 @@ import pickle
 import keras_tuner as kt
 import urllib.request
 
+# Seed dla reprodukowalnosci wynikow treningu
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, BatchNormalization, Activation
 from keras.optimizers import Adam
@@ -18,11 +27,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ==========================================
 # 1. KONFIGURACJA I POBRANIE MODELU MEDIAPIPE
 # ==========================================
-FOLDER_Z_DANYMI = "../lepsze_dane"
-MODEL_TASK_PATH = "hand_landmarker.task"
+FOLDER_Z_DANYMI = os.path.join(BASE_DIR, "..", "lepsze_dane")
+MODEL_TASK_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
 
 # Automatyczne pobieranie modelu dla nowego API MediaPipe
 if not os.path.exists(MODEL_TASK_PATH):
@@ -45,10 +56,11 @@ detector = vision.HandLandmarker.create_from_options(options)
 # ==========================================
 # 2. FUNKCJE POMOCNICZE
 # ==========================================
-def unifikuj_punkty(landmarks, handedness_category):
+def cechy_statyczne_reka(landmarks, handedness_category):
     """
-    Ekstrakcja punktów 3D, normalizacja i dodanie informacji o ręce.
-    Dostosowane do nowego formatu danych MediaPipe Tasks API.
+    Wejście: 21 punktów 3D (x, y, z) z MediaPipe Tasks API + kategoria ręki.
+    Wyjście: wektor 64 float (63 współrzędne znormalizowane + 1.0/0.0 prawa/lewa) - używane przez model etap_04.
+    UWAGA: 64. element to flaga ręki (1.0=prawa, 0.0=lewa), NIE kąt atan2!
     """
     # Nowe API przechowuje współrzędne bezpośrednio jako atrybuty obiektu
     punkty = np.array([[lm.x, lm.y, lm.z] for lm in landmarks])
@@ -83,7 +95,7 @@ def analizuj_i_dodaj(obraz_rgb, litera, dane_lista, etykiety_lista):
     # Sprawdzamy czy wykryto dłoń (hand_landmarks) i jej typ (handedness)
     if wynik.hand_landmarks and wynik.handedness:
         # Pobieramy pierwszą wykrytą dłoń ([0]) i jej pierwszą klasyfikację ([0][0])
-        cechy = unifikuj_punkty(wynik.hand_landmarks[0], wynik.handedness[0][0])
+        cechy = cechy_statyczne_reka(wynik.hand_landmarks[0], wynik.handedness[0][0])
         dane_lista.append(cechy)
         etykiety_lista.append(litera)
 
@@ -288,4 +300,28 @@ najlepszy_model.fit(
 with open("etykiety_punkty_v2_nocny.pkl", "wb") as f:
     pickle.dump(lb, f)
 
+# Zapis etykiet jako JSON (czysta lista — nie wymaga sklearn przy wczytywaniu)
+with open("etykiety_punkty_v2_nocny.json", "w", encoding="utf-8") as f:
+    json.dump(lb.classes_.tolist(), f, ensure_ascii=False)
+
+# Zapis karty modelu — kontrakt dla przyszłego backendu
+model_card = {
+    "model_file": nazwa_modelu,
+    "input_shape": [X_train.shape[1]],
+    "feature_spec": "21 punktow 3D (x,y,z), normalizacja wzgledem nadgarstka, skalowanie do max=1, + flaga reki (1.0=prawa, 0.0=lewa); MediaPipe Tasks API (hand_landmarker.task)",
+    "mediapipe_api": "tasks (nowy)",
+    "classes": lb.classes_.tolist(),
+    "trained_at": datetime.datetime.now().isoformat(),
+    "tf_version": tf.__version__,
+    "best_hyperparameters": {
+        "neurony_warstwa_1": najlepsze_hiperparametry.get("neurony_warstwa_1"),
+        "neurony_warstwa_2": najlepsze_hiperparametry.get("neurony_warstwa_2"),
+        "dodaj_warstwe_3": najlepsze_hiperparametry.get("dodaj_warstwe_3"),
+        "learning_rate": najlepsze_hiperparametry.get("learning_rate"),
+    },
+}
+with open("model_card_etap04.json", "w", encoding="utf-8") as f:
+    json.dump(model_card, f, indent=2, ensure_ascii=False)
+
 print(f"\nUkończono! Rewelacyjnie wytrenowana sieć czeka w pliku '{nazwa_modelu}'.")
+print("Zapisano takze: etykiety_punkty_v2_nocny.json oraz model_card_etap04.json")

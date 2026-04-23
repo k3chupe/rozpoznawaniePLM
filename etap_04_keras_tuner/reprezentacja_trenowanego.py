@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -7,13 +8,15 @@ from keras.models import load_model
 import pickle
 import time
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ==========================================
 # 1. WCZYTANIE MODELU I ETYKIET
 # ==========================================
 print("Wczytywanie wytrenowanego modelu...")
 try:
-    model = load_model("model_gesty_punkty_v2_nocny.keras")
-    with open("etykiety_punkty_v2_nocny.pkl", "rb") as f:
+    model = load_model(os.path.join(BASE_DIR, "model_gesty_punkty_v2_nocny.keras"))
+    with open(os.path.join(BASE_DIR, "etykiety_punkty_v2_nocny.pkl"), "rb") as f:
         lb = pickle.load(f)
 except Exception as e:
     print(f"Błąd ładowania modelu! Upewnij się, że skrypt treningowy zakończył pracę. Błąd: {e}")
@@ -22,7 +25,10 @@ except Exception as e:
 # ==========================================
 # 2. FUNKCJA POMOCNICZA (MUSI BYĆ IDENTYCZNA JAK W TRENINGU)
 # ==========================================
-def unifikuj_punkty(landmarks, handedness_category):
+def cechy_statyczne_reka(landmarks, handedness_category):
+    # Wejście: 21 punktów 3D (x, y, z) z MediaPipe Tasks API + kategoria ręki.
+    # Wyjście: wektor 64 float (63 współrzędne znormalizowane + 1.0/0.0 prawa/lewa) - model etap_04.
+    # UWAGA: 64. element to flaga ręki (1.0=prawa, 0.0=lewa), NIE kąt atan2!
     punkty = np.array([[lm.x, lm.y, lm.z] for lm in landmarks])
     nadgarstek = punkty[0]
     punkty_przesuniete = punkty - nadgarstek
@@ -53,7 +59,7 @@ def uruchom_detekcje(zrodlo="kamera", sciezka=None):
         running_mode = vision.RunningMode.VIDEO
 
     # Konfiguracja MediaPipe
-    base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
+    base_options = python.BaseOptions(model_asset_path=os.path.join(BASE_DIR, 'hand_landmarker.task'))
     options = vision.HandLandmarkerOptions(
         base_options=base_options,
         running_mode=running_mode,
@@ -77,7 +83,7 @@ def uruchom_detekcje(zrodlo="kamera", sciezka=None):
             wynik = detector.detect(mp_image)
             
             if wynik.hand_landmarks:
-                cechy = unifikuj_punkty(wynik.hand_landmarks[0], wynik.handedness[0][0])
+                cechy = cechy_statyczne_reka(wynik.hand_landmarks[0], wynik.handedness[0][0])
                 cechy_wejscie = np.expand_dims(cechy, axis=0) # Dodanie wymiaru batch (1, 64)
                 
                 predykcja = model.predict(cechy_wejscie, verbose=0)
@@ -127,7 +133,7 @@ def uruchom_detekcje(zrodlo="kamera", sciezka=None):
                 wynik = detector.detect_for_video(mp_image, timestamp_ms)
                 
                 if wynik.hand_landmarks:
-                    cechy = unifikuj_punkty(wynik.hand_landmarks[0], wynik.handedness[0][0])
+                    cechy = cechy_statyczne_reka(wynik.hand_landmarks[0], wynik.handedness[0][0])
                     cechy_wejscie = np.expand_dims(cechy, axis=0)
                     
                     predykcja = model.predict(cechy_wejscie, verbose=0)
@@ -164,11 +170,12 @@ def uruchom_detekcje(zrodlo="kamera", sciezka=None):
 # 4. STEROWANIE - ODKOMENTUJ TO CO CHCESZ PRZETESTOWAĆ
 # ==========================================
 
-# Opcja 1: Rozpoznawanie na żywo z kamerki komputerowej
-uruchom_detekcje(zrodlo="kamera")
+if __name__ == "__main__":
+    # Opcja 1: Rozpoznawanie na żywo z kamerki komputerowej
+    uruchom_detekcje(zrodlo="kamera")
 
-# Opcja 2: Rozpoznawanie na zapisanym filmie
-# uruchom_detekcje(zrodlo="wideo", sciezka="testowy_film.mp4")
+    # Opcja 2: Rozpoznawanie na zapisanym filmie
+    # uruchom_detekcje(zrodlo="wideo", sciezka="testowy_film.mp4")
 
-# Opcja 3: Rozpoznawanie na pojedynczym zdjęciu
-# uruchom_detekcje(zrodlo="zdjecie", sciezka="testowe_zdjecie.jpg")
+    # Opcja 3: Rozpoznawanie na pojedynczym zdjęciu
+    # uruchom_detekcje(zrodlo="zdjecie", sciezka="testowe_zdjecie.jpg")
