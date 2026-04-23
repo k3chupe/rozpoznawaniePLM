@@ -11,7 +11,7 @@ import xgboost as xgb
 import pickle
 
 # Konfiguracja
-FOLDER_Z_DANYMI = "lepsze_dane" # Zmień na swój folder z obrazkami
+FOLDER_Z_DANYMI = "../lepsze_dane"
 
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_confidence=0.5)

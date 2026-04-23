@@ -12,16 +12,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
 
-from sklearn.utils.class_weight import compute_class_weight
-from sklearn.preprocessing import LabelBinarizer, LabelEncoder
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# I to zadziała bez błędu:
-nazwa_modelu = os.path.join(BASE_DIR, "models", "model_gesty_ruchome.keras")
+nazwa_modelu = os.path.join(BASE_DIR, "model_gesty_ruchome.keras")
 
-FOLDER_Z_DANYMI = "nagrania_gestow" # Zmień na swój folder z filmami wideo
+FOLDER_Z_DANYMI = "../nagrania_gestow"
 MAX_KLATEK_W_GEŚCIE = 30 # Każdy gest kompresujemy/rozciągamy do równych 30 klatek
 
 mp_hands = mp.solutions.hands
@@ -165,7 +160,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 # ==========================================
 # KONFIGURACJA "STRAŻNIKÓW" TRENINGU
 # ==========================================
-nazwa_modelu = os.path.join(BASE_DIR, "models", "model_gesty_ruchome.keras")
+nazwa_modelu = os.path.join(BASE_DIR, "model_gesty_ruchome.keras")
 
 # 1. Główny strażnik - Wczesne Zatrzymanie
 early_stop = EarlyStopping(

@@ -1,155 +1,110 @@
-# Rozpoznawanie Gestów Dłoni (MediaPipe + OpenCV + TensorFlow)
+# Rozpoznawanie Gestow Jezyka Migowego (PLM)
 
-Repozytorium zawiera pełny pipeline do budowy własnego rozpoznawania gestów dłoni:
+Projekt budowany iteracyjnie — kazdy folder `etap_*` to osobny eksperyment z wlasnym srodowiskiem wirtualnym i zaleznosciami.
 
-1. przygotowanie wzorców gestów,
-2. zebranie danych treningowych kamerą,
-3. trening modelu,
-4. test modelu na żywo.
+## Struktura projektu
 
-## Co robi każdy skrypt
-
-- `rozpoznwaanie_rak1.py`
-    - wczytuje wzorce z folderu `alfabet/` (pliki `wzor_*.jpg`),
-    - porównuje gest z kamery do wzorców,
-    - automatycznie zapisuje zdjęcia do `do_nauki/` (gdy pewność > 85%).
-- `trenowanie.py`
-    - analizuje zdjęcia z `do_nauki/`,
-    - trenuje model MLP,
-    - zapisuje `model_gesty_punkty.keras` i `etykiety_punkty.pkl`.
-- `pokazanie.py`
-    - ładuje wytrenowany model,
-    - pokazuje rozpoznaną literę i pewność na obrazie z kamery.
-
-## Wymagania
-
-- Python 3.11 (64-bit) zalecany
-- Kamera internetowa
-- Windows / Linux / macOS
-
-## Instalacja
-
-1. Sklonuj repozytorium:
-
-```bash
-git clone https://github.com/k3chupe/rozpoznawaniePLM.git
-cd rozpoznawaniePLM
+```
+rozpoznawaniePLM/
+├── setup_venv.bat                        # Skrypt tworzacy venv dla kazdego etapu
+│
+├── etap_01_dopasowanie_szablonow/        # Etap 1: dopasowanie geometryczne do wzorcow
+├── etap_02_siec_mlp/                     # Etap 2: siec neuronowa MLP na zdjeciach
+├── etap_03_xgboost_porownanie/           # Etap 3: XGBoost + porownanie z Keras
+├── etap_04_keras_tuner/                  # Etap 4: optymalizacja hiperparametrow (Keras Tuner)
+└── etap_05_lstm_ruch/                    # Etap 5: rozpoznawanie gestow dynamicznych (LSTM)
 ```
 
-2. Utwórz i aktywuj środowisko wirtualne:
+## Dane (wspoldzielone miedzy etapami)
 
-Windows (PowerShell):
+Foldery z danymi sa wspoldzielone i leza w korzeniu repozytorium (ignorowane przez git):
+
+| Folder | Opis | Uzywany w etapach |
+|---|---|---|
+| `alfabet/` | Zdjecia wzorcowe `wzor_*.jpg` | 01 |
+| `do_nauki/` | Automatycznie zbierane klatki | 01 |
+| `lepsze_dane/` | Recznie zebrane zdjecia (flat lub podfoldery) | 02, 03, 04 |
+| `nagrania_gestow/` | Krotkie filmy per gest | 05 |
+| `nagrania_testy/` | Filmy do testow porownawczych | 03 |
+| `analiza/` | Obrazy analizy wzorcow | 01 |
+
+## Szybki start
+
+### 1. Konfiguracja srodowisk
+
+```bat
+setup_venv.bat
+```
+
+Skrypt stworzy folder `venv/` w kazdym etapie i zainstaluje wymagane pakiety.
+
+### 2. Aktywacja srodowiska dla wybranego etapu
 
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-Linux / macOS:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-3. Zainstaluj zależności:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Krok 1: Przygotuj wzorce w folderze alfabet
-
-Do folderu `alfabet/` dodaj zdjęcia wzorcowe, po jednym na każdy gest/literę, np.:
-
-- `wzor_A.jpg`
-- `wzor_B.jpg`
-- `wzor_C.jpg`
-
-Ważne:
-
-- nazwa musi zaczynać się od `wzor_` i kończyć na `.jpg`,
-- litera w nazwie pliku to etykieta klasy,
-- zdjęcie powinno zawierać wyraźnie widoczną dłoń (najlepiej jednolite tło i dobre światło).
-
-## Krok 2: Zbieranie danych do uczenia
-
-Uruchom:
-
-```bash
-python rozpoznwaanie_rak1.py
-```
-
-Co zobaczysz:
-
-- podgląd kamery z punktami dłoni,
-- bieżącą rozpoznaną literę `ZNAK`,
-- procenty dopasowania dla każdej litery ze wzorców.
-
-Jak działa zapis danych:
-
-- jeżeli gest jest rozpoznany (nie `0`) i ma pewność > 85%,
-- skrypt zapisze surową klatkę do `do_nauki/`,
-- zapis następuje maksymalnie raz na 3 sekundy,
-- nazwa pliku ma format np. `A_1712345678901.jpg`.
-
-Praktyczna wskazówka:
-
-- dla każdej litery zbierz minimum 30-50 zdjęć,
-- zmieniaj lekko kąt dłoni, odległość i tło,
-- im bardziej zróżnicowane próbki, tym lepsza generalizacja modelu.
-
-## Krok 3: Trening własnego modelu
-
-Gdy masz dane w `do_nauki/`, uruchom:
-
-```bash
+.\etap_02_siec_mlp\venv\Scripts\activate.ps1
+cd etap_02_siec_mlp
 python trenowanie.py
 ```
 
-Skrypt:
+## Opis etapow
 
-- wyciąga cechy z 21 punktów dłoni (43 wartości),
-- dzieli dane na zbiór treningowy i testowy,
-- trenuje sieć neuronową,
-- nadpisuje pliki:
-    - `model_gesty_punkty.keras`
-    - `etykiety_punkty.pkl`
+### Etap 1 — Dopasowanie szablonow (`etap_01_dopasowanie_szablonow`)
 
-Na końcu treningu w konsoli zobaczysz metryki, m.in. `accuracy` i `val_accuracy`.
+Pierwsza proba: rozpoznawanie bez uczenia maszynowego. Program porownuje geometrie 21 punktow dłoni z kamery do przygotowanych wczesniej zdjec wzorcowych. Zbiera automatycznie klatki do folderu `do_nauki/` gdy pewnosc > 85%.
 
-## Krok 4: Test skuteczności na żywo
-
-Uruchom:
-
-```bash
-python pokazanie.py
+**Uruchomienie:**
+```
+python rozpoznawanie_rak.py
 ```
 
-W oknie kamery zobaczysz:
+---
 
-- przewidywaną literę,
-- procent pewności (pokazywany, gdy pewność > 60%).
+### Etap 2 — Siec neuronowa MLP (`etap_02_siec_mlp`)
 
-W ten sposób sprawdzisz, jak model radzi sobie z gestami nauczonymi na Twoich danych.
+Zebrane dane (zdjecia) sa analizowane przez MediaPipe, a wyekstrahowane cechy (43 liczby: 21 punktow 2D + kat) trafia do sieci MLP (Keras). Workflow:
 
-## Szybki workflow (skrót)
+1. `python robienie_zdjec.py` — zbierz zdjecia do `../lepsze_dane/`
+2. `python trenowanie.py` — wytrenuj model, zapisze `model_gesty_punkty.keras`
+3. `python pokazanie.py` — demo na zywo
 
-1. Dodaj `wzor_*.jpg` do `alfabet/`.
-2. Uruchom `python rozpoznwaanie_rak1.py` i zbierz dane do `do_nauki/`.
-3. Uruchom `python trenowanie.py`.
-4. Uruchom `python pokazanie.py` i oceń skuteczność.
+---
 
-## Rozwiązywanie problemów
+### Etap 3 — XGBoost i porownanie (`etap_03_xgboost_porownanie`)
 
-- Kamera się nie uruchamia:
-    - sprawdź, czy inna aplikacja nie blokuje kamery,
-    - zmień indeks kamery w kodzie (`cv2.VideoCapture(0)` -> `1`).
-- Brak zapisu zdjęć do `do_nauki/`:
-    - upewnij się, że masz poprawne wzorce w `alfabet/`,
-    - sprawdź, czy na ekranie pojawia się litera inna niż `0`,
-    - utrzymuj gest stabilnie przez kilka sekund.
-- Słabe wyniki modelu:
-    - dozbieraj więcej danych,
-    - wyrównaj liczbę próbek między klasami,
-    - zadbaj o różne warunki oświetlenia i tła.
+Eksperyment z modelem XGBoost zamiast sieci neuronowej, + wizualne porownanie obu modeli na zywo i na nagraniu.
+
+1. `python xgb_trenowanie.py` — trenowanie XGBoost (potrzebne dane z etapu 2 w `../lepsze_dane/`)
+2. `python wizualizacja_porownanie.py` — kamera z wynikami obu modeli obok siebie
+3. `python nagranie_porownij.py` — przetworz plik `../nagrania_testy/alfabet.mp4`
+
+**Uwaga:** Wymaga gotowych modeli z etapu 2 (`model_gesty_punkty.keras`, `etykiety_punkty.pkl`) skopiowanych do tego folderu.
+
+---
+
+### Etap 4 — Keras Tuner + MediaPipe Tasks API (`etap_04_keras_tuner`)
+
+Przejscie na nowe MediaPipe Tasks API (3D landmarks + informacja o rece). Automatyczne wyszukiwanie najlepszej architektury sieci przez Bayesian Optimization (Keras Tuner). Trening nocny.
+
+1. Upewnij sie ze dane sa w `../lepsze_dane/<LITERA>/` (podfoldery — uzyj `zmiana_do_folder.py` do konwersji z flat)
+2. `odpal.bat` — uruchamia `skrypt_treningowy.py` i loguje czas do `raport_nocny.txt`
+3. `python reprezentacja_trenowanego.py` — demo (kamera / wideo / zdjecie)
+4. `python nowe_demo.py` — wersja PRO z obracajacym sie modelem 3D dłoni
+
+---
+
+### Etap 5 — Gesty dynamiczne LSTM (`etap_05_lstm_ruch`)
+
+Rozpoznawanie gestow wymagajacych ruchu (np. litery J, Z w PJM). Model LSTM uczy sie sekwencji 30 klatek.
+
+1. `python nagrywanie_filmow_do_danych.py` — nagraj krotkie filmy do `../nagrania_gestow/`
+2. `python terning_na_filmie.py` — trenowanie LSTM, zapisze `model_gesty_ruchome.keras`
+3. `python ruch_pokaz.py` — demo na zywo z historia ostatnich 3 gestow
+
+---
+
+## Wymagania systemowe
+
+- Python 3.11 (64-bit)
+- Kamera internetowa
+- Windows (testowane), Linux/macOS (powinno dzialac)
+- GPU opcjonalne (TensorFlow obsluguje CPU)

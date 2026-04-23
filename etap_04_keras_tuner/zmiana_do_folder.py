@@ -4,7 +4,7 @@ import shutil
 # ==========================================
 # KONFIGURACJA
 # ==========================================
-NAZWA_FOLDERU = "lepsze_dane"
+NAZWA_FOLDERU = "../lepsze_dane"
 
 def posortuj_zdjecia():
     # 1. Sprawdzamy, czy folder w ogóle istnieje

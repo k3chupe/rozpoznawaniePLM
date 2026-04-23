@@ -12,7 +12,7 @@ import pickle
 # KONFIGURACJA MODELU I KAMERY
 # ==========================================
 SCIEZKA_MODELU = "model_gesty_punkty_v2_nocny.keras"
-SCIEZKA_ETYKIET = "etykiety_punkty.pkl"
+SCIEZKA_ETYKIET = "etykiety_punkty_v2_nocny.pkl"
 PEWNOSC_THRESHOLD = 0.65 
 # Rozdzielczość kamery
 KAMERA_SZEROKOSC = 1920

@@ -4,7 +4,7 @@ import os
 import time
 
 # --- Konfiguracja ---
-NAZWA_FOLDERU = "lepsze_dane"
+NAZWA_FOLDERU = "../lepsze_dane"
 PLIK_PLANU = "plan_zbierania.txt"
 
 if not os.path.exists(NAZWA_FOLDERU):

@@ -12,8 +12,8 @@ import time
 # ==========================================
 print("Wczytywanie wytrenowanego modelu...")
 try:
-    model = load_model("model_gesty_punkty_v2.keras")
-    with open("etykiety_punkty_v2.pkl", "rb") as f:
+    model = load_model("model_gesty_punkty_v2_nocny.keras")
+    with open("etykiety_punkty_v2_nocny.pkl", "rb") as f:
         lb = pickle.load(f)
 except Exception as e:
     print(f"Błąd ładowania modelu! Upewnij się, że skrypt treningowy zakończył pracę. Błąd: {e}")

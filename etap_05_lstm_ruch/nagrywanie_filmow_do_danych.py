@@ -5,7 +5,7 @@ import time
 import keyboard
 
 # --- KONFIGURACJA ---
-NAZWA_FOLDERU = "nagrania_gestow" # Folder, w którym będą zapisywane nagrania (każda litera będzie miała swój podfolder)
+NAZWA_FOLDERU = "../nagrania_gestow"
 PLIK_PLANU = "plan_nagrania.txt"
 ROZDZIELCZOSC = (1920, 1080)
 FPS = 30.0

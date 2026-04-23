@@ -53,9 +53,9 @@ mp_drawing = mp.solutions.drawing_utils # Wracamy do oficjalnego rysowania!
 hands_wzor = mp_hands.Hands(static_image_mode=True, max_num_hands=1)
 hands_kamera = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.5)
 
-nazwa_folderu = 'alfabet'
-folder_analizy = 'analiza'
-folder_do_nauki = 'do_nauki' # Folder na nowe zdjęcia
+nazwa_folderu = '../alfabet'
+folder_analizy = '../analiza'
+folder_do_nauki = '../do_nauki'
 
 if not os.path.exists(nazwa_folderu):
     print(f"BŁĄD: Nie znaleziono folderu '{nazwa_folderu}'!")

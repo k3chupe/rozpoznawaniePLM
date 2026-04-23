@@ -21,7 +21,7 @@ from sklearn.utils.class_weight import compute_class_weight
 # ==========================================
 # 1. KONFIGURACJA I POBRANIE MODELU MEDIAPIPE
 # ==========================================
-FOLDER_Z_DANYMI = "lepsze_dane" 
+FOLDER_Z_DANYMI = "../lepsze_dane"
 MODEL_TASK_PATH = "hand_landmarker.task"
 
 # Automatyczne pobieranie modelu dla nowego API MediaPipe
@@ -114,15 +114,13 @@ for folder_klasy in os.listdir(FOLDER_Z_DANYMI):
         
         obraz_odbity = cv2.flip(obraz_rgb, 1)
         analizuj_i_dodaj(obraz_odbity, litera, dane, etykiety)
-        # 3. Lekka rotacja w lewo (-15 stopni)
-        obraz_rot_lewo = obroc_obraz(obraz_rgb, -15)
-        obraz_rot_lewo += obroc_obraz(obraz_odbity, -15)
-        analizuj_i_dodaj(obraz_rot_lewo, litera, dane, etykiety)
+        # 3. Lekka rotacja w lewo (-15 stopni) - oryginał i odbicie jako osobne próby
+        analizuj_i_dodaj(obroc_obraz(obraz_rgb, -15), litera, dane, etykiety)
+        analizuj_i_dodaj(obroc_obraz(obraz_odbity, -15), litera, dane, etykiety)
         
-        # 4. Lekka rotacja w prawo (+15 stopni)
-        obraz_rot_prawo = obroc_obraz(obraz_rgb, 15)
-        obraz_rot_prawo += obroc_obraz(obraz_odbity, 15)
-        analizuj_i_dodaj(obraz_rot_prawo, litera, dane, etykiety)
+        # 4. Lekka rotacja w prawo (+15 stopni) - oryginał i odbicie jako osobne próby
+        analizuj_i_dodaj(obroc_obraz(obraz_rgb, 15), litera, dane, etykiety)
+        analizuj_i_dodaj(obroc_obraz(obraz_odbity, 15), litera, dane, etykiety)
 
 dane = np.array(dane)
 
